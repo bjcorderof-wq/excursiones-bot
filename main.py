@@ -44,3 +44,13 @@ def consultar_itinerario(consulta: str):
 @app.get("/itinerario_texto/{consulta}")
 def consultar_itinerario_texto(consulta: str):
     return obtener_itinerario_por_consulta(consulta)
+
+from pydantic import BaseModel
+
+class ItinerarioRequest(BaseModel):
+    consulta: str
+
+
+@app.post("/itinerario")
+def consultar_itinerario_post(data: ItinerarioRequest):
+    return obtener_itinerario_por_consulta(data.consulta)
