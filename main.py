@@ -7,7 +7,7 @@ Created on Fri Jun 19 16:39:03 2026
 
 from fastapi import FastAPI
 from sheets import obtener_destinos
-from sheets import obtener_itinerario_por_viaje
+from sheets import obtener_itinerario_por_viaje, obtener_itinerario_por_consulta
 
 app = FastAPI()
 
@@ -36,3 +36,7 @@ def consultar_itinerario(id_viaje: str):
         "id_viaje": id_viaje,
         "itinerario": resultado
     }
+
+@app.get("/itinerario")
+def consultar_itinerario(consulta: str):
+    return obtener_itinerario_por_consulta(consulta)

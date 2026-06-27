@@ -79,3 +79,57 @@ def obtener_itinerario_por_viaje(id_viaje: str):
     ]
 
     return resultado
+
+
+###############
+
+def normalizar_texto(texto):
+    return str(texto).strip().lower()
+
+
+def buscar_viaje_por_texto(consulta: str):
+    consulta_norm = normalizar_texto(consulta)
+    viajes = destinos.get_all_records()
+
+    for viaje in viajes:
+        nombre = normalizar_texto(viaje.get("Nombre", ""))
+        destino = normalizar_texto(viaje.get("Destino", ""))
+        id_viaje = normalizar_texto(viaje.get("ID_Viaje", ""))
+
+        if (
+            consulta_norm in nombre
+            or consulta_norm in destino
+            or consulta_norm in id_viaje
+            or nombre in consulta_norm
+            or destino in consulta_norm
+        ):
+            return viaje
+
+    return None
+
+
+def obtener_itinerario_por_consulta(consulta: str):
+    viaje = buscar_viaje_por_texto(consulta)
+
+    if not viaje:
+        return {
+            "encontrado": False,
+            "mensaje": "No se encontró un viaje relacionado con la consulta.",
+            "consulta": consulta,
+            "viaje": None,
+            "itinerario": []
+        }
+
+    id_viaje = viaje.get("ID_Viaje")
+    datos_itinerario = itinerario.get_all_records()
+
+    resultado = [
+        fila for fila in datos_itinerario
+        if normalizar_texto(fila.get("ID_Viaje", "")) == normalizar_texto(id_viaje)
+    ]
+
+    return {
+        "encontrado": True,
+        "viaje": viaje,
+        "itinerario": resultado
+    }
