@@ -68,3 +68,14 @@ def obtener_pagos():
 
 def obtener_itinerario():
     return itinerario.get_all_records()
+
+
+def obtener_itinerario_por_viaje(id_viaje: str):
+    datos = itinerario.get_all_records()
+
+    resultado = [
+        fila for fila in datos
+        if str(fila.get("ID_Viaje", "")).strip().upper() == id_viaje.strip().upper()
+    ]
+
+    return resultado

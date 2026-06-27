@@ -7,6 +7,7 @@ Created on Fri Jun 19 16:39:03 2026
 
 from fastapi import FastAPI
 from sheets import obtener_destinos
+from sheets import obtener_itinerario_por_viaje
 
 app = FastAPI()
 
@@ -19,3 +20,19 @@ def home():
 @app.get("/destinos")
 def listar_destinos():
     return obtener_destinos()
+
+@app.get("/itinerario/{id_viaje}")
+def consultar_itinerario(id_viaje: str):
+    resultado = obtener_itinerario_por_viaje(id_viaje)
+
+    if not resultado:
+        return {
+            "mensaje": "No se encontró itinerario para este viaje",
+            "id_viaje": id_viaje,
+            "itinerario": []
+        }
+
+    return {
+        "id_viaje": id_viaje,
+        "itinerario": resultado
+    }
