@@ -40,3 +40,7 @@ def consultar_itinerario(id_viaje: str):
 @app.get("/itinerario")
 def consultar_itinerario(consulta: str):
     return obtener_itinerario_por_consulta(consulta)
+
+@app.get("/itinerario_texto/{consulta}")
+def consultar_itinerario_texto(consulta: str):
+    return obtener_itinerario_por_consulta(consulta)
