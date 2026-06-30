@@ -9,7 +9,16 @@ from sheets import (
     obtener_itinerario_por_consulta
 )
 
-app = FastAPI()
+app = FastAPI(
+    title="Excursiones Meza API",
+    version="1.0.0",
+    servers=[
+        {
+            "url": "https://excursiones-bot-production.up.railway.app",
+            "description": "Producción"
+        }
+    ]
+)
 
 
 class ItinerarioRequest(BaseModel):
@@ -18,7 +27,10 @@ class ItinerarioRequest(BaseModel):
 
 @app.get("/")
 def home():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "version": "openapi-v2"
+    }
 
 
 @app.get("/destinos")
