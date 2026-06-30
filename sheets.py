@@ -3,6 +3,9 @@ import json
 import gspread
 
 from google.oauth2.service_account import Credentials
+from datetime import datetime
+
+#%%
 
 SCOPES = [
     "https://www.googleapis.com/auth/spreadsheets",
@@ -81,7 +84,7 @@ def obtener_itinerario_por_viaje(id_viaje: str):
     return resultado
 
 
-###############
+#%%
 
 def normalizar_texto(texto):
     return str(texto).strip().lower()
@@ -132,4 +135,123 @@ def obtener_itinerario_por_consulta(consulta: str):
         "encontrado": True,
         "viaje": viaje,
         "itinerario": resultado
+    }
+
+
+#%%
+
+
+def generar_siguiente_id(hoja, prefijo):
+    registros = hoja.get_all_records()
+
+    if not registros:
+        return f"{prefijo}001"
+
+    ids = []
+    primera_columna = hoja.row_values(1)[0]
+
+    for fila in registros:
+        valor = str(fila.get(primera_columna, "")).replace(prefijo, "")
+        if valor.isdigit():
+            ids.append(int(valor))
+
+    siguiente = max(ids) + 1 if ids else 1
+    return f"{prefijo}{siguiente:03d}"
+
+
+def actualizar_cupo_disponible(id_viaje, cantidad_personas):
+    datos = destinos.get_all_records()
+    valores = destinos.get_all_values()
+    encabezados = valores[0]
+
+    col_id = encabezados.index("ID_Viaje") + 1
+    col_cupo = encabezados.index("Cupo_Disponible") + 1
+
+    for i, fila in enumerate(datos, start=2):
+        if str(fila.get("ID_Viaje")).strip().upper() == str(id_viaje).strip().upper():
+            cupo_actual = int(fila.get("Cupo_Disponible", 0))
+
+            if cupo_actual < cantidad_personas:
+                return {
+                    "ok": False,
+                    "mensaje": "No hay cupos suficientes",
+                    "cupo_disponible": cupo_actual
+                }
+
+            nuevo_cupo = cupo_actual - cantidad_personas
+            destinos.update_cell(i, col_cupo, nuevo_cupo)
+
+            return {
+                "ok": True,
+                "cupo_anterior": cupo_actual,
+                "cupo_nuevo": nuevo_cupo
+            }
+
+    return {
+        "ok": False,
+        "mensaje": "No se encontró el viaje"
+    }
+
+
+def registrar_reserva_pago(consulta, cliente, vendedor, cantidad_personas, monto_abono, comentario=""):
+    viaje = buscar_viaje_por_texto(consulta)
+
+    if not viaje:
+        return {
+            "ok": False,
+            "mensaje": "No se encontró un viaje relacionado con la consulta."
+        }
+
+    id_viaje = viaje.get("ID_Viaje")
+    nombre_viaje = viaje.get("Nombre")
+
+    resultado_cupo = actualizar_cupo_disponible(id_viaje, cantidad_personas)
+
+    if not resultado_cupo.get("ok"):
+        return resultado_cupo
+
+    fecha_actual = datetime.now().strftime("%d/%m/%Y")
+
+    id_reserva = generar_siguiente_id(reservas, "R")
+
+    estado = "Reserva con abono" if monto_abono > 0 else "Pendiente de pago"
+
+    reservas.append_row([
+        id_reserva,
+        nombre_viaje,
+        vendedor,
+        cliente,
+        cantidad_personas,
+        fecha_actual,
+        estado
+    ])
+
+    id_pago = None
+
+    if monto_abono > 0:
+        id_pago = generar_siguiente_id(pagos, "P")
+
+        pagos.append_row([
+            id_pago,
+            cliente,
+            monto_abono,
+            fecha_actual,
+            comentario or f"Abono reserva {id_reserva} - {nombre_viaje}"
+        ])
+
+    return {
+        "ok": True,
+        "mensaje": "Reserva y pago registrados correctamente",
+        "reserva": {
+            "id_reserva": id_reserva,
+            "cliente": cliente,
+            "viaje": nombre_viaje,
+            "cantidad_personas": cantidad_personas,
+            "estado": estado
+        },
+        "pago": {
+            "id_pago": id_pago,
+            "monto_abono": monto_abono
+        },
+        "cupos": resultado_cupo
     }

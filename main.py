@@ -6,7 +6,8 @@ from pydantic import BaseModel
 from sheets import (
     obtener_destinos,
     obtener_itinerario_por_viaje,
-    obtener_itinerario_por_consulta
+    obtener_itinerario_por_consulta,
+    registrar_reserva_pago
 )
 
 app = FastAPI(
@@ -23,6 +24,15 @@ app = FastAPI(
 
 class ItinerarioRequest(BaseModel):
     consulta: str
+    
+    
+class ReservaPagoRequest(BaseModel):
+    consulta: str
+    cliente: str
+    vendedor: str
+    cantidad_personas: int
+    monto_abono: float
+    comentario: str = ""
 
 
 @app.get("/")
@@ -68,3 +78,14 @@ def consultar_itinerario_texto(consulta: str):
 @app.post("/itinerario")
 def consultar_itinerario_post(data: ItinerarioRequest):
     return obtener_itinerario_por_consulta(data.consulta)
+
+@app.post("/reserva_pago")
+def crear_reserva_pago(data: ReservaPagoRequest):
+    return registrar_reserva_pago(
+        consulta=data.consulta,
+        cliente=data.cliente,
+        vendedor=data.vendedor,
+        cantidad_personas=data.cantidad_personas,
+        monto_abono=data.monto_abono,
+        comentario=data.comentario
+    )
