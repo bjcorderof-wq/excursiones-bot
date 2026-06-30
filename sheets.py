@@ -193,6 +193,12 @@ def actualizar_cupo_disponible(id_viaje, cantidad_personas):
     }
 
 
+def agregar_fila_por_encabezados(hoja, datos):
+    encabezados = hoja.row_values(1)
+    fila = [datos.get(col, "") for col in encabezados]
+    hoja.append_row(fila)
+
+
 def registrar_reserva_pago(consulta, cliente, vendedor, cantidad_personas, monto_abono, comentario=""):
     viaje = buscar_viaje_por_texto(consulta)
 
@@ -204,6 +210,10 @@ def registrar_reserva_pago(consulta, cliente, vendedor, cantidad_personas, monto
 
     id_viaje = viaje.get("ID_Viaje")
     nombre_viaje = viaje.get("Nombre")
+    precio = float(viaje.get("Precio_USD", 0))
+
+    monto_total = precio * cantidad_personas
+    saldo_pendiente = monto_total - monto_abono
 
     resultado_cupo = actualizar_cupo_disponible(id_viaje, cantidad_personas)
 
@@ -216,28 +226,31 @@ def registrar_reserva_pago(consulta, cliente, vendedor, cantidad_personas, monto
 
     estado = "Reserva con abono" if monto_abono > 0 else "Pendiente de pago"
 
-    reservas.append_row([
-        id_reserva,
-        nombre_viaje,
-        vendedor,
-        cliente,
-        cantidad_personas,
-        fecha_actual,
-        estado
-    ])
+    agregar_fila_por_encabezados(reservas, {
+        "ID_Reserva": id_reserva,
+        "Nombre": nombre_viaje,
+        "Vendedor": vendedor,
+        "Cliente": cliente,
+        "Cantidad_Personas": cantidad_personas,
+        "Fecha_Reserva": fecha_actual,
+        "Estado": estado,
+        "Monto_Total": monto_total,
+        "Saldo_Pendiente": saldo_pendiente
+    })
 
     id_pago = None
 
     if monto_abono > 0:
         id_pago = generar_siguiente_id(pagos, "P")
 
-        pagos.append_row([
-            id_pago,
-            cliente,
-            monto_abono,
-            fecha_actual,
-            comentario or f"Abono reserva {id_reserva} - {nombre_viaje}"
-        ])
+        agregar_fila_por_encabezados(pagos, {
+            "ID_Pago": id_pago,
+            "ID_Reserva": id_reserva,
+            "Cliente": cliente,
+            "Monto": monto_abono,
+            "Fecha": fecha_actual,
+            "Comentario": comentario or f"Abono reserva {id_reserva} - {nombre_viaje}"
+        })
 
     return {
         "ok": True,
@@ -247,6 +260,8 @@ def registrar_reserva_pago(consulta, cliente, vendedor, cantidad_personas, monto
             "cliente": cliente,
             "viaje": nombre_viaje,
             "cantidad_personas": cantidad_personas,
+            "monto_total": monto_total,
+            "saldo_pendiente": saldo_pendiente,
             "estado": estado
         },
         "pago": {
