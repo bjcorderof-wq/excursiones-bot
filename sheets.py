@@ -270,3 +270,66 @@ def registrar_reserva_pago(consulta, cliente, vendedor, cantidad_personas, monto
         },
         "cupos": resultado_cupo
     }
+
+#%%
+def registrar_abono_reserva(cliente, monto_abono, comentario=""):
+    reservas_data = reservas.get_all_records()
+    reservas_values = reservas.get_all_values()
+    encabezados_reservas = reservas_values[0]
+
+    col_saldo = encabezados_reservas.index("Saldo_Pendiente") + 1
+    col_id_reserva = encabezados_reservas.index("ID_Reserva") + 1
+
+    reserva_encontrada = None
+    fila_reserva = None
+
+    for i, fila in enumerate(reservas_data, start=2):
+        if str(fila.get("Cliente", "")).strip().lower() == str(cliente).strip().lower():
+            reserva_encontrada = fila
+            fila_reserva = i
+            break
+
+    if not reserva_encontrada:
+        return {
+            "ok": False,
+            "mensaje": "No se encontró una reserva para este cliente."
+        }
+
+    id_reserva = reserva_encontrada.get("ID_Reserva")
+    nombre_viaje = reserva_encontrada.get("Nombre")
+    saldo_actual = float(reserva_encontrada.get("Saldo_Pendiente", 0))
+
+    nuevo_saldo = saldo_actual - monto_abono
+
+    if nuevo_saldo < 0:
+        nuevo_saldo = 0
+
+    reservas.update_cell(fila_reserva, col_saldo, nuevo_saldo)
+
+    fecha_actual = datetime.now().strftime("%d/%m/%Y")
+    id_pago = generar_siguiente_id(pagos, "P")
+
+    agregar_fila_por_encabezados(pagos, {
+        "ID_Pago": id_pago,
+        "ID_Reserva": id_reserva,
+        "Cliente": cliente,
+        "Monto": monto_abono,
+        "Fecha": fecha_actual,
+        "Comentario": comentario or f"Abono adicional reserva {id_reserva}"
+    })
+
+    return {
+        "ok": True,
+        "mensaje": "Abono registrado correctamente",
+        "pago": {
+            "id_pago": id_pago,
+            "cliente": cliente,
+            "monto_abono": monto_abono
+        },
+        "reserva": {
+            "id_reserva": id_reserva,
+            "viaje": nombre_viaje,
+            "saldo_anterior": saldo_actual,
+            "saldo_pendiente": nuevo_saldo
+        }
+    }

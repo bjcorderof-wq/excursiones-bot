@@ -7,7 +7,8 @@ from sheets import (
     obtener_destinos,
     obtener_itinerario_por_viaje,
     obtener_itinerario_por_consulta,
-    registrar_reserva_pago
+    registrar_reserva_pago,
+    registrar_abono_reserva
 )
 
 app = FastAPI(
@@ -31,6 +32,11 @@ class ReservaPagoRequest(BaseModel):
     cliente: str
     vendedor: str
     cantidad_personas: int
+    monto_abono: float
+    comentario: str = ""
+    
+class AbonoRequest(BaseModel):
+    cliente: str
     monto_abono: float
     comentario: str = ""
 
@@ -86,6 +92,14 @@ def crear_reserva_pago(data: ReservaPagoRequest):
         cliente=data.cliente,
         vendedor=data.vendedor,
         cantidad_personas=data.cantidad_personas,
+        monto_abono=data.monto_abono,
+        comentario=data.comentario
+    )
+
+@app.post("/abono")
+def registrar_abono(data: AbonoRequest):
+    return registrar_abono_reserva(
+        cliente=data.cliente,
         monto_abono=data.monto_abono,
         comentario=data.comentario
     )
